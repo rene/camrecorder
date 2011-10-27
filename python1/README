@@ -1,0 +1,24 @@
+** CAMRECORDER 0.1 Beta - REAME file **
+
+camrecorder it's a simple program record and make web streams from webcams.
+
+
+WEBSITE: ???
+
+
+DEPENDENCIES (you should have these packages installed on your system):
+
+    * Pygst (>=0.10)
+
+
+HOW TO RUN:
+
+    Just execute camrecorder at source root tree:
+
+    ./camrecorder
+
+BUG REPORT:
+
+    This is a beta version, please report any kind of bug or issue
+    to rene@renesp.com.br
+

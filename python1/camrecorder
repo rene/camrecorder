@@ -1,0 +1,33 @@
+#!/bin/sh
+
+##
+# Just do some sanity check before start camrecorder
+#
+cd src
+
+PYTHON=`which python`
+
+if [ -z "$PYTHON" ]; then
+	echo
+	echo "Python was not found."
+	echo "camrecorder will not execute. Please, install Python first."
+	echo
+	exit 1
+fi
+
+$PYTHON << EOF
+import sys
+
+try:
+	import pygst
+	pygst.require("0.10")
+	import gst
+except:
+	print "Pygst (>=0.10) package was not found.\nRadiorec will not execute. Please, install Pygst (>=0.10) first."
+	sys.exit(1)
+
+sys.exit(0)
+EOF
+
+[ $? -eq 0 ] && ./camrecorder.py
+
