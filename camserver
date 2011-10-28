@@ -16,7 +16,7 @@ VSOURCE="$VELEM ! $CLOCK"
 
 #STREAM="ffmpegcolorspace ! videoscale ! video/x-raw-yuv,width=320,height=240 ! theoraenc quality=16 ! oggmux ! shout2send ip=10.1.1.1 port=8000 password=ajc521 mount=live.ogg"
 
-STREAM="ffmpegcolorspace ! videoscale ! video/x-raw-yuv,width=512,height=384 ! theoraenc quality=16 ! oggmux ! shout2send ip=10.1.1.1 port=8000 password=ajc521 mount=live.ogg"
+STREAM="ffmpegcolorspace ! videoscale video/x-raw-yuv,width=512,height=384 ! theoraenc quality=16 ! oggmux ! shout2send ip=10.1.1.1 port=8000 password=ajc521 mount=live.ogg"
 
 
 PIPELINE="$VSOURCE ! $STREAM"
