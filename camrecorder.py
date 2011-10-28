@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 from optparse import OptionParser
+from datetime import datetime
+from os import path
+import signal, random
 import glib, gtk
 
 try:
@@ -30,8 +33,9 @@ class CamRecorder:
 	#   ---------   --------------   -----------   --------   -----  |  --------   ----------
 	#                                                                |-| queue1 |-| filesink |
 	#                                                                   --------   ----------
-	#
 	def __init__(self):
+
+		self.timeformat = '%d-%m-%Y_%H:%M:%S'
 
 		self.device   = '/dev/video0'
 
@@ -39,7 +43,8 @@ class CamRecorder:
 		self.port     = 8000
 		self.mount    = ''
 		self.password = None
-		
+		self.output   = 'camrecorder-'
+
 		self.status = CamRecorder.ST_NOT_STARTED
 
 		# Create pipeline
@@ -79,6 +84,8 @@ class CamRecorder:
 		bus.add_signal_watch()
 		bus.connect("message", self.cb_messages)
 
+		# Init random
+		random.seed()
 
 
 	##
@@ -89,14 +96,18 @@ class CamRecorder:
 	# \param port Icecast server port.
 	# \param mount Source client mount name.
 	# \param password Icecast server password.
+	# \param output Output file base name.
 	#
-	def start(self, device, ip, port, mount, password):
+	def start(self, device, ip, port, mount, password, output):
 
 		self.device   = device
 		self.ip       = ip
 		self.port     = port
 		self.mount    = mount
 		self.password = password
+
+		if output != None:
+			self.output = output
 
 		# Set element properties
 
@@ -113,7 +124,7 @@ class CamRecorder:
 		self.theoraenc.set_property('quality', 48)
 		
 		# Filesink
-		self.filesink.set_property('location', 'teste.ogg')
+		self.filesink.set_property('location', self.get_newfilename())
 
 		# Shoutcast
 		self.shout.set_property('ip', self.ip)
@@ -132,42 +143,72 @@ class CamRecorder:
 		print '    port:  %d' % port
 		print '    mount: %s' % mount
 
-
+	##
+	# Callback to treat streaming error messages.
+	#
 	def cb_messages(self, bus, message):
 		
 		t = message.type
-		if t == gst.MESSAGE_STATE_CHANGED:
-
-			old, new, pending = message.parse_state_changed()
-
-			if new == gst.STATE_PLAYING:
-				print 'Playing...'
-			elif new == gst.STATE_NULL:
-				print 'Null'
-			elif new == gst.STATE_PAUSED:
-				print 'Paused'
-
-		elif t == gst.MESSAGE_ERROR:
+		if t == gst.MESSAGE_ERROR:
 			err, debug = message.parse_error()
-			print "Error: %s" % err, debug
-			return
+			print "Error: %s" % err
+			print debug
+
+	##
+	# Return a timestamp.
+	#
+	def get_timestamp(self):
+
+		tnow = datetime.now()
+		tstamp = tnow.strftime(self.timeformat)
+		return tstamp
+
+	##
+	# Return new file name with timestamp, 
+	# checking if there is no file with same name.
+	#
+	def get_newfilename(self):
 		
-		elif t == gst.MESSAGE_BUFFERING:
-			print 'Buffering...'
+		fname = ''
+		if self.output != None:
+			fname = self.output
 
-		return
+		fname = fname + self.get_timestamp() + '.ogg'
+		if path.isfile(fname):
+			fname = fname + '_' + str(random.randint(0,200000)) + '.ogg'
+			
+		return fname
 
+	##
+	# Change output file of the stream to a new generated file.
+	#
+	def swap_outputfile(self):
+
+		self.pipeline.set_state(gst.STATE_PAUSED)
+		self.filesink.set_property('location', self.get_newfilename())
+		self.pipeline.set_state(gst.STATE_PLAYING)
+
+
+##
+# Quit application.
+#
+def quit():
+	server.pipeline.set_state(gst.STATE_NULL)
+	print 'Good Bye!'
 
 # main
 if __name__ == '__main__':
 
+	signal.signal(signal.SIGINT, quit)
+
 	# Parse arguments
 	parser = OptionParser()
 	parser.add_option('-d', '--device', dest='device', help='Video device (i.e. /dev/video0)')
-	parser.add_option('-a', '--address', dest="ip", help="IP of Icecast source server")
-	parser.add_option('-p', '--port', dest="port", help="Port of Icecast")
-	parser.add_option('-m', '--mount', dest="mount", help="Icecast mount point")
-	parser.add_option('-s', '--password', dest="password", help="Icecast password")
+	parser.add_option('-a', '--address', dest='ip', help='IP of Icecast source server')
+	parser.add_option('-p', '--port', dest='port', help='Port of Icecast')
+	parser.add_option('-m', '--mount', dest='mount', help='Icecast mount point')
+	parser.add_option('-s', '--password', dest='password', help='Icecast password')
+	parser.add_option('-o', '--output', dest='output', help='Output file base name')
 
 	options, args = parser.parse_args()
 
@@ -175,7 +216,8 @@ if __name__ == '__main__':
 	if options.device == None:
 		print 'Please, provide device file with --device option.'
 		sys.exit(1)
-	elif options.ip == None:
+	
+	if options.ip == None:
 		options.ip = '127.0.0.1'
 		print 'No IP provided, using %s' % options.ip
 
@@ -185,14 +227,17 @@ if __name__ == '__main__':
 	else:
 		port = int(options.port)
 
-	server = CamRecorder()
-	server.start(options.device, options.ip, port, options.mount, options.password)
+	if options.mount == None:
+		options.mount = 'live.ogg'
+		print 'No mount point provided, using %s' % options.mount
 
+	server = CamRecorder()
+	server.start(options.device, options.ip, port, options.mount, options.password, options.output)
+	
 	# Enter to GLib MainLoop
 	gtk.gdk.threads_init()
 	try:
 		gtk.main()
 	except KeyboardInterrupt:
-		server.pipeline.set_state(gst.STATE_NULL)
-		print 'Good Bye!'
+		quit()
 
