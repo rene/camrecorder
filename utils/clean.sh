@@ -27,6 +27,6 @@ REMLIST=$(echo $ORDFILES | head -n $NREMOVE)
 IFS=$OLDIFS
 
 if [ -n "$REMLIST" ]; then
-	echo rm $REMLIST
+	rm $REMLIST
 fi
 
