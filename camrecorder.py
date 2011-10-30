@@ -4,7 +4,7 @@ from optparse import OptionParser
 from datetime import datetime
 from os import path
 import sys, signal, random
-import glib, gtk
+import glib, gobject
 
 try:
 	import pygst
@@ -242,7 +242,8 @@ class CamRecorder:
 #
 def quit(signum, frame):
 	server.pipeline.set_state(gst.STATE_NULL)
-	gtk.quit()
+	#gtk.quit()
+	gobject.idle_add(server.main_loop.quit)
 
 
 # main
@@ -285,9 +286,9 @@ if __name__ == '__main__':
 	server.start(options.device, options.ip, port, options.mount, options.password, options.output)
 	
 	# Enter to GLib MainLoop
-	gtk.gdk.threads_init()
 	try:
-		gtk.main()
+		server.main_loop = gobject.MainLoop()
+		server.main_loop.run()
 	except KeyboardInterrupt:
 		print 'Good bye!'
 
