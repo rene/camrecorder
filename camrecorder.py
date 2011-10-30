@@ -3,7 +3,7 @@
 from optparse import OptionParser
 from datetime import datetime
 from os import path
-import signal, random
+import sys, signal, random
 import glib, gtk
 
 try:
@@ -21,6 +21,9 @@ class CamRecorder:
 	ST_NOT_STARTED  = 0
 	ST_STREAMING    = 1
 	ST_PAUSED       = 2
+
+	# Default interval time to split streaming (in seconds)
+	DEFAULT_INTERV_TIME = 3600
 
 	##
 	# Class Constructor
@@ -87,6 +90,10 @@ class CamRecorder:
 		# Init random
 		random.seed()
 
+		# Flag to change output file
+		self.wait_change_file = False
+		self.change_ready = True
+
 
 	##
 	# Start streaming and recording server.
@@ -135,6 +142,11 @@ class CamRecorder:
 		if self.mount != None:
 			self.shout.set_property('mount', self.mount)
 
+		# Signal handling
+		signal.signal(signal.SIGALRM, self.split_stream)
+		signal.alarm(self.DEFAULT_INTERV_TIME)
+
+		# Start streaming
 		self.pipeline.set_state(gst.STATE_PLAYING)
 
 		print 'Using video device: %s' % device
@@ -153,6 +165,12 @@ class CamRecorder:
 			err, debug = message.parse_error()
 			print "Error: %s" % err
 			print debug
+		elif t == gst.MESSAGE_STATE_CHANGED:
+			old, new, pending = message.parse_state_changed()
+			if new == gst.STATE_READY:
+				if self.wait_change_file == True:
+					self.change_ready = True
+					self.swap_outputfile()
 
 	##
 	# Return a timestamp.
@@ -181,24 +199,56 @@ class CamRecorder:
 
 	##
 	# Change output file of the stream to a new generated file.
+	# \note We need to wait pipeline to change his status.
 	#
 	def swap_outputfile(self):
 
-		self.pipeline.set_state(gst.STATE_PAUSED)
-		self.filesink.set_property('location', self.get_newfilename())
-		self.pipeline.set_state(gst.STATE_PLAYING)
+		if self.wait_change_file == False:
+			self.wait_change_file = True
+			self.change_ready = False
+			self.pipeline.set_state(gst.STATE_READY)
+		else:
+			if self.change_ready == True:
+				# Change location of filesink
+				self.queue1.unlink(self.filesink)
+				self.pipeline.remove(self.filesink)
+				self.filesink.set_state(gst.STATE_NULL)
+				self.filesink.set_property('location', self.get_newfilename())
+				self.pipeline.add(self.filesink)
+				self.queue1.link(self.filesink)
+
+				# Start pipeline again
+				self.pipeline.set_state(gst.STATE_PLAYING)
+				self.wait_change_file = False
+				self.change_ready = False
+
+	##
+	# Periodic function to change output file name, spliting streaming
+	# in several files to avoid hudge files.
+	#
+	def split_stream(self, signum, frame):
+
+		# Signal handling
+		signal.alarm(self.DEFAULT_INTERV_TIME)
+
+		# Swap output file
+		state, pending, timeout = self.pipeline.get_state()
+		if pending == gst.STATE_PLAYING:
+			self.swap_outputfile()
 
 
 ##
 # Quit application.
 #
-def quit():
+def quit(signum, frame):
 	server.pipeline.set_state(gst.STATE_NULL)
-	print 'Good Bye!'
+	gtk.quit()
+
 
 # main
 if __name__ == '__main__':
 
+	# Signal handling
 	signal.signal(signal.SIGINT, quit)
 
 	# Parse arguments
@@ -239,5 +289,5 @@ if __name__ == '__main__':
 	try:
 		gtk.main()
 	except KeyboardInterrupt:
-		quit()
+		print 'Good bye!'
 
