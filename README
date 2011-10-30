@@ -5,7 +5,7 @@
 About:
 ======
 
-Camrecorder it's a simple utility that aims to make a video stream using a
+Camrecorder it's a simple utility that aims to make a video stream using an
 icecast server and record the video on files divided into several parts (one
 video file per hour), everything at the same time.
 
