@@ -1,0 +1,66 @@
+=====================
+==== Camrecorder ====
+=====================
+
+About:
+======
+
+Camrecorder it's a simple utility that aims to make a video stream using a
+icecast server and record the video on files divided into several parts (one
+video file per hour), everything at the same time.
+
+Camrecorder it's to be used specially with surveillance cameras, where no audio
+stream is necessary. Only video will be streamed and recorded.
+
+Split files into several parts makes easy to search and handle videos,
+Camrecorder also uses a timestamp format in file names.
+
+
+How to use:
+===========
+
+Camrecorder was written in python, so all you need to run is:
+
+	* Python
+	* Gstreamer libraries and plugins (specially V4L2)
+	* Python gstreamer bindings (python-gst)
+	
+	Of course a Icecast server is necessary to stream the videos.
+	If you want to run by your own a Icecast server, please, see
+	http://www.icecast.org/
+
+
+Camrecorder arguments:
+
+	-d | --device        Video device (i.e. /dev/video0)
+	-a | --address       IP of Icecast source server (default 127.0.0.1)
+	-p | --port          Icecast server port (default 8000)
+	-m | --mount         Icecast mount point (default live.ogg)
+	-s | --password      Icecast password
+	-o | --output        Output file base name (default camrecorder-)
+
+Example usage:
+
+	./camrecorder.py -d /dev/video0 -a 192.168.1.10 -s foo -p 8000 -m garagecam.ogg -o /media/hd2/garage-
+
+	The command above will stream from device /dev/video0 in a Icecast server
+	running at 192.168.1.10 on port 8000, with password foo, and mount point
+	garagecam.ogg.
+
+	All video files will be saved in /media/hd2/garage-TIMESTAMP.ogg, where
+	TIMESTAMP corresponds to the current date and time when the file was
+	created.
+
+
+Bug reports:
+============
+
+Please, report them to rene@renesp.com.br
+
+
+Author:
+=======
+
+Camrecorder was written by Renê de Souza Pinto.
+
+

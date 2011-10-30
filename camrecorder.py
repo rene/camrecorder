@@ -1,4 +1,24 @@
 #!/usr/bin/env python
+#-*-encoding:utf-8-*-
+
+##
+# camrecorder - Record and streaming video
+# Copyright (C) 2011 Renê de Souza Pinto. 
+#
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
 from optparse import OptionParser
 from datetime import datetime
@@ -16,11 +36,6 @@ except:
 
 # Camrecorder object
 class CamRecorder:
-
-	# Status
-	ST_NOT_STARTED  = 0
-	ST_STREAMING    = 1
-	ST_PAUSED       = 2
 
 	# Default interval time to split streaming (in seconds)
 	DEFAULT_INTERV_TIME = 3600
@@ -47,8 +62,6 @@ class CamRecorder:
 		self.mount    = ''
 		self.password = None
 		self.output   = 'camrecorder-'
-
-		self.status = CamRecorder.ST_NOT_STARTED
 
 		# Create pipeline
 		self.pipeline = gst.Pipeline('camrec-pl')
@@ -242,7 +255,6 @@ class CamRecorder:
 #
 def quit(signum, frame):
 	server.pipeline.set_state(gst.STATE_NULL)
-	#gtk.quit()
 	gobject.idle_add(server.main_loop.quit)
 
 
@@ -256,7 +268,7 @@ if __name__ == '__main__':
 	parser = OptionParser()
 	parser.add_option('-d', '--device', dest='device', help='Video device (i.e. /dev/video0)')
 	parser.add_option('-a', '--address', dest='ip', help='IP of Icecast source server')
-	parser.add_option('-p', '--port', dest='port', help='Port of Icecast')
+	parser.add_option('-p', '--port', dest='port', help='Icecast server port')
 	parser.add_option('-m', '--mount', dest='mount', help='Icecast mount point')
 	parser.add_option('-s', '--password', dest='password', help='Icecast password')
 	parser.add_option('-o', '--output', dest='output', help='Output file base name')

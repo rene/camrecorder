@@ -1,0 +1,6 @@
+
+clean.sh is a script to remove older video files, keeping in the system only the
+number of files specified by KEEP_NFILES variable.
+
+You can call clean.sh periodically with crontab each hour, for example. 
+
