@@ -25,8 +25,8 @@ Camrecorder was written in python, so all you need to run is:
 	* Gstreamer libraries and plugins (specially V4L2)
 	* Python gstreamer bindings (python-gst)
 	
-	Of course a Icecast server is necessary to stream the videos.
-	If you want to run by your own a Icecast server, please, see
+	Of course an Icecast server is necessary to stream the videos.
+	If you want to run by your own an Icecast server, please, see
 	http://www.icecast.org/
 
 
@@ -43,7 +43,7 @@ Example usage:
 
 	./camrecorder.py -d /dev/video0 -a 192.168.1.10 -s foo -p 8000 -m garagecam.ogg -o /media/hd2/garage-
 
-	The command above will stream from device /dev/video0 in a Icecast server
+	The command above will stream from device /dev/video0 in an Icecast server
 	running at 192.168.1.10 on port 8000, with password foo, and mount point
 	garagecam.ogg.
 
