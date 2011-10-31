@@ -44,13 +44,15 @@ class CamRecorder:
 	# Class Constructor
 	#
 	# The pipeline for this application is:
-	#                                                                   --------   ------------
-	#                                                                |-| queue0 |-| shout2send |
-	#   ---------   --------------   -----------   --------   -----  |  --------   ------------
-	#  | v4l2src |-| clockoverlay |-| theoraenc |-| oggmux |-| tee |-|
-	#   ---------   --------------   -----------   --------   -----  |  --------   ----------
-	#                                                                |-| queue1 |-| filesink |
-	#                                                                   --------   ----------
+	#
+	#                                          ------------   ----------   ------------   ---------   --------   ------------
+	#                                       |-| videoscale |-| vfilter0 |-| theoraenc0 |-| oggmux0 |-| queue0 |-| shout2send |
+	#   ---------   --------------   ----- 1|  ------------   ----------   ------------   ---------   --------   ------------
+	#  | v4l2src |-| clockoverlay |-| tee |-|
+	#   ---------   --------------   ----- 0|  ------------   ----------   ------------   ---------   --------   ----------
+	#                                       |-| videoscale |-| vfilter1 | | theoraenc1 |-| oggmux1 |-| queue1 |-| filesink |
+	#                                          ------------   ----------   ------------   ---------   --------   ----------
+	#
 	def __init__(self):
 
 		self.timeformat = '%d-%m-%Y_%H:%M:%S'
@@ -74,8 +76,12 @@ class CamRecorder:
 		# Video
 		self.videosrc     = gst.element_factory_make('v4l2src', 'videosrc')
 		self.clockoverlay = gst.element_factory_make('clockoverlay', 'clock')
-		self.theoraenc    = gst.element_factory_make('theoraenc', 'theora')
-		self.oggmux       = gst.element_factory_make('oggmux', 'oggm')
+		
+		# Encoders
+		self.theoraenc0   = gst.element_factory_make('theoraenc', 'theora0')
+		self.theoraenc1   = gst.element_factory_make('theoraenc', 'theora1')
+		self.oggmux0      = gst.element_factory_make('oggmux', 'oggmux0')
+		self.oggmux1      = gst.element_factory_make('oggmux', 'oggmux1')
 
 		# Icecast streaming
 		self.shout = gst.element_factory_make('shout2send', 'shout')
@@ -83,17 +89,34 @@ class CamRecorder:
 		# Video recorder
 		self.filesink = gst.element_factory_make('filesink', 'fout')
 		
+		# Filters
+		caps0 = gst.Caps('video/x-raw-yuv,width=512,height=384')
+		self.vfilter0 = gst.element_factory_make('capsfilter', 'vfilter0')
+		self.vfilter0.set_property('caps', caps0)
+		
+		caps1 = gst.Caps('video/x-raw-yuv,width=640,height=480')
+		self.vfilter1 = gst.element_factory_make('capsfilter', 'vfilter1')
+		self.vfilter1.set_property('caps', caps1)
+
+		# Videoscale
+		self.vsc0 = gst.element_factory_make('videoscale', 'vc0')
+		self.vsc1 = gst.element_factory_make('videoscale', 'vc1')
+
+
 		# Connect elements
-		self.pipeline.add(self.videosrc, self.clockoverlay, self.theoraenc, self.oggmux, self.tee, self.queue0, self.queue1, self.filesink, self.shout)
-		gst.element_link_many(self.videosrc, self.clockoverlay, self.theoraenc, self.oggmux, self.tee)
-		gst.element_link_many(self.queue0, self.shout)
-		gst.element_link_many(self.queue1, self.filesink)
+		self.pipeline.add(self.videosrc, self.clockoverlay, self.tee, \
+							self.vsc0, self.vfilter0, self.theoraenc0, self.oggmux0, self.queue0, self.shout, \
+							self.vsc1, self.vfilter1, self.theoraenc1, self.oggmux1, self.queue1, self.filesink)
+
+		gst.element_link_many(self.videosrc, self.clockoverlay, self.tee)
+		gst.element_link_many(self.vsc0, self.vfilter0, self.theoraenc0, self.oggmux0, self.queue0, self.shout)
+		gst.element_link_many(self.vsc1, self.vfilter1, self.theoraenc1, self.oggmux1, self.queue1, self.filesink)
 
 		# Connect tee pads
 		teepad0 = self.tee.get_request_pad('src0')
 		teepad1 = self.tee.get_request_pad('src1')
-		teepad0.link(self.queue0.get_pad('sink'))
-		teepad1.link(self.queue1.get_pad('sink'))
+		teepad1.link(self.vsc0.get_pad('sink'))
+		teepad0.link(self.vsc1.get_pad('sink'))
 
 		# Bus
 		bus = self.pipeline.get_bus()
@@ -141,7 +164,8 @@ class CamRecorder:
 		self.clockoverlay.set_property('time-format', '%d/%m/%Y %H:%M:%S')
 	
 		# Theora enc
-		self.theoraenc.set_property('quality', 48)
+		self.theoraenc0.set_property('quality', 48)
+		self.theoraenc1.set_property('quality', 48)
 		
 		# Filesink
 		self.filesink.set_property('location', self.get_newfilename())
