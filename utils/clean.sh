@@ -7,7 +7,7 @@ VIDEOPATH=.
 KEEP_NFILES=120
 
 # Sort files by modification date
-ORDFILES=$(ls -l $VIDEOPATH/*.ogg | awk '{ print $6, $7, $8, $9 }' | sort -g | cut -d" " -f4)
+ORDFILES=$(ls -l --full-time $VIDEOPATH/*.ogg | awk '{ print $6, $7, $9 }' | sort -n | cut -d" " -f3)
 
 # Count files
 OLDIFS=$IFS
