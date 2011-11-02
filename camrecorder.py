@@ -164,7 +164,7 @@ class CamRecorder:
 		self.clockoverlay.set_property('time-format', '%d/%m/%Y %H:%M:%S')
 	
 		# Theora enc
-		self.theoraenc0.set_property('quality', 48)
+		self.theoraenc0.set_property('quality', 32)
 		self.theoraenc1.set_property('quality', 48)
 		
 		# Filesink
